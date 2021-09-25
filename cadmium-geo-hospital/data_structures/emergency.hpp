@@ -4,11 +4,9 @@
 #include <assert.h>
 #include <iostream>
 #include <string>
+#include <vector>
 
-#include <cadmium/web/output/message_type.hpp>
-
-using namespace std;
-using namespace cadmium::web::output;
+#include <web/output/message_type.hpp>
 
 struct Emergency_t{
 	Emergency_t(): area_id(""), port_i(0), quantity(0){}
@@ -21,10 +19,10 @@ struct Emergency_t{
 //		int port_i;
 //		int quantity;
 
-	Emergency_t(std::string area_id, int port_i, int quantity):
+	Emergency_t(string area_id, int port_i, int quantity):
 		area_id(area_id), port_i(port_i), quantity(quantity) {}
 
-		std::string area_id = area_id;
+		string area_id = area_id;
 		int port_i;
 		int quantity;
 
@@ -36,13 +34,13 @@ struct Emergency_t{
 	}
 };
 
-std::ostream& operator<<(std::ostream& os, const Emergency_t& msg) {
+ostream& operator<<(ostream& os, const Emergency_t& msg) {
 	  os << msg.area_id << "," << msg.port_i << "," << msg.quantity;
 
 	  return os;
 }
 
-std::istream& operator>> (std::istream& is, Emergency_t& msg) {
+istream& operator>> (istream& is, Emergency_t& msg) {
 	is >> msg.area_id;
 	is >> msg.port_i;
 	is >> msg.quantity;

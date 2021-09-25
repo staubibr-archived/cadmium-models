@@ -1,49 +1,47 @@
 
 #ifndef _EMERGENCY_PROCESSOR_HPP__
 #define _EMERGENCY_PROCESSOR_HPP__
-
-#include <cadmium/modeling/ports.hpp>
-#include <cadmium/modeling/message_bag.hpp>
-
+/*
 #include <limits>
 #include <assert.h>
-#include <string>
 #include <random>
 #include <cmath>
+*/
+#include <string>
 #include <iostream>
 #include <vector>
+#include <nlohmann/json.hpp>
 
-#include <cadmium/web/json.hpp>
-#include <cadmium/web/web_model.hpp>
-#include <cadmium/web/output/message_type.hpp>
+#include <web/output/message_type.hpp>
+#include <web/web_ports.hpp>
 
 #include "../data_structures/emergency.hpp"
 
 using namespace cadmium;
-using namespace std;
+
 using json = nlohmann::json;
 
 //Port definition
-struct Hospital_defs{
-    struct processor_out : public cadmium::web::web_out_port<Emergency_t> {};
-    struct processor_in : public cadmium::web::web_in_port<Emergency_t> {};
+struct hospital_defs{
+    struct processor_out : public web::out_port<Emergency_t> {};
+    struct processor_in : public web::in_port<Emergency_t> {};
 };
 
 // model parameters
-struct Hospital_params {
-	std::string id = "";
-	std::string name = "";
+struct hospital_params {
+	string id = "";
+	string name = "";
 	int rate = 0;
 	int capacity = 0;
 };
 
 template<typename TIME>
-class Hospital{
+class hospital{
 public:
 
     // ports definition
-    using output_ports = tuple<typename Hospital_defs::processor_out>;
-    using input_ports = tuple<typename Hospital_defs::processor_in>;
+    using output_ports = tuple<typename hospital_defs::processor_out>;
+    using input_ports = tuple<typename hospital_defs::processor_in>;
 
     // state definition
     struct state_type{
@@ -51,31 +49,27 @@ public:
         int total = 0;
         int released = 0;
         int rejected = 0;
-        std::vector<Emergency_t> emergencies;
+        vector<Emergency_t> emergencies;
     };
 
     state_type state;
-    Hospital_params params;
+    hospital_params params;
 
-    Hospital() {}
+    hospital() {}
 
-    Hospital(Hospital_params ext_params) {
-    	params = ext_params;
-    }
+    hospital(json j_params) {
+		struct hospital_params p;
 
-    static Hospital_params params_from_feature(json j) {
-		struct Hospital_params p;
+		p.id = j_params.at("index").get<string>();
+		p.name = j_params.at("facility_name").get<string>();
+		p.rate = j_params.at("rate").get<int>();
+		p.capacity = j_params.at("capacity").get<int>();
 
-		p.id = j.at("properties").at("index").get<std::string>();
-		p.name = j.at("properties").at("facility_name").get<std::string>();
-		p.rate = j.at("properties").at("rate").get<int>();
-		p.capacity = j.at("properties").at("capacity").get<int>();
-
-		return p;
+		params = p;
     }
 
     void external_transition(TIME e, typename make_message_bags<input_ports>::type mbs) {
-        for(const auto &msg : get_messages<typename Hospital_defs::processor_in>(mbs)){
+        for(const auto &msg : get_messages<typename hospital_defs::processor_in>(mbs)){
             state.active += msg.quantity;
             state.total += msg.quantity;
 
@@ -106,7 +100,7 @@ public:
         typename make_message_bags<output_ports>::type bags;
 
 		for(const auto &em : state.emergencies){
-			std::get<message_bag<typename Hospital_defs::processor_out>>(bags).messages.push_back(em);
+			get<message_bag<typename hospital_defs::processor_out>>(bags).messages.push_back(em);
 		}
 
         return bags;
@@ -125,7 +119,7 @@ public:
         external_transition(TIME(), move(mbs));
     }
 
-    friend ostringstream& operator<<(ostringstream& os, const typename Hospital<TIME>::state_type& i) {
+    friend ostringstream& operator<<(ostringstream& os, const typename hospital<TIME>::state_type& i) {
         os << i.active << "," << i.total << "," << i.released << "," << i.rejected;
 
         return os;
@@ -137,10 +131,5 @@ public:
 
     	return message_type("s_hospital", fields, description);
     }
-
-	vector<message_type> get_port_message_type() {
-
-    	return {  };
-	}
 };
 #endif // _EMERGENCY_PROCESSOR_HPP__
